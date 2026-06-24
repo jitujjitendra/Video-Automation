@@ -1,0 +1,24 @@
+{
+  "title": "Story Title",
+  "language": "Hindi/English/Hinglish",
+  "genre": "Drama/Comedy/Thriller/etc",
+  "mood": "Overall mood of the story",
+  "total_duration_seconds": 120,
+  "scenes": [
+    {
+      "scene_number": 1,
+      "description": "What happens in this scene - narrative description",
+      "visual_prompt": "Detailed visual description for video/image generation. Include setting, characters, colors, lighting, camera angle, movement.",
+      "audio_direction": "Background music mood, sound effects needed",
+      "duration_seconds": 10,
+      "dialogue": "Voiceover narration or character dialogue for this scene",
+      "scene_type": "opening/rising_action/climax/resolution/closing"
+    }
+  ],
+  "metadata": {
+    "total_scenes": 10,
+    "narrator_voice": "Male/Female, tone description",
+    "background_music_style": "Cinematic orchestral",
+    "target_audience": "General/Youth/etc"
+  }
+}
