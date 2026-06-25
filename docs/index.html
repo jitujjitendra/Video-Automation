@@ -62,6 +62,32 @@
                         <p>Your API key is stored locally and never sent to our servers.</p>
                     </div>
                 </div>
+
+                <!-- How It Works Section -->
+                <div class="how-it-works">
+                    <h2>How It Works</h2>
+                    <div class="steps-row">
+                        <div class="how-step">
+                            <span class="how-step-icon">🔑</span>
+                            <span class="how-step-label">Enter API Key</span>
+                        </div>
+                        <div class="how-step-arrow">→</div>
+                        <div class="how-step">
+                            <span class="how-step-icon">💡</span>
+                            <span class="how-step-label">Describe Your Idea</span>
+                        </div>
+                        <div class="how-step-arrow">→</div>
+                        <div class="how-step">
+                            <span class="how-step-icon">⚡</span>
+                            <span class="how-step-label">AI Generates Video</span>
+                        </div>
+                        <div class="how-step-arrow">→</div>
+                        <div class="how-step">
+                            <span class="how-step-icon">📥</span>
+                            <span class="how-step-label">Download & Enjoy</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -71,6 +97,23 @@
                 <div class="dashboard-header">
                     <h1>Create Your Video</h1>
                     <p class="subtitle">Describe your idea and let AI bring it to life</p>
+                </div>
+
+                <!-- Quick Tips Collapsible -->
+                <div class="quick-tips">
+                    <div class="quick-tips-header" id="quick-tips-toggle">
+                        <span>💡 Quick Tips</span>
+                        <span class="quick-tips-arrow" id="quick-tips-arrow">▼</span>
+                    </div>
+                    <div class="quick-tips-body" id="quick-tips-body">
+                        <ul>
+                            <li>Be descriptive with your idea for better results</li>
+                            <li>Hindi songs work best with emotional/romantic themes</li>
+                            <li>Realistic style takes longer but looks amazing</li>
+                            <li>Include specific locations or settings for more vivid scenes</li>
+                            <li>Shorter ideas (2-3 sentences) are processed faster</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="creation-form">
@@ -137,6 +180,10 @@
                 <div class="progress-header">
                     <h1>Generating Your Video</h1>
                     <p class="subtitle" id="progress-subtitle">Please wait while AI works its magic...</p>
+                    <div class="estimated-time" id="estimated-time">
+                        <span class="estimated-time-icon">⏱️</span>
+                        <span class="estimated-time-text" id="estimated-time-text">Estimated: ~3-5 min</span>
+                    </div>
                 </div>
 
                 <div class="pipeline-steps">
@@ -281,6 +328,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Built with &#10084;&#65039; | Powered by Google Gemini, Veo 3.1, Edge TTS | v1.0.0</p>
+        </footer>
     </div>
 
     <script src="js/api.js"></script>

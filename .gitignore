@@ -15,13 +15,8 @@ env/
 .venv/
 
 # Output files
-outputs/*.mp4
-outputs/*.mp3
-outputs/*.wav
-outputs/*.avi
-outputs/*.mkv
-outputs/*.json
-outputs/*/
+outputs/*
+!outputs/.gitkeep
 
 # Node
 node_modules/

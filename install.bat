@@ -7,8 +7,17 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
     set "ESC=%%b"
 )
 
+echo %ESC%[36m
+echo     _    ___  __     ___     _
+echo    / \  |_ _| \ \   / (_) __| | ___  ___
+echo   / _ \  | |   \ \ / /| |/ _` |/ _ \/ _ \
+echo  / ___ \ | |    \ V / | | (_| |  __/ (_) |
+echo /_/   \_\___|    \_/  |_|\__,_|\___|\___/
+echo.
+echo       A U T O M A T I O N   A G E N T
+echo %ESC%[0m
 echo %ESC%[36m============================================%ESC%[0m
-echo %ESC%[36m   AI Video Automation Agent - Installer%ESC%[0m
+echo %ESC%[36m        One-Click Installer v1.0.0%ESC%[0m
 echo %ESC%[36m============================================%ESC%[0m
 echo.
 
@@ -99,7 +108,7 @@ if not exist .env (
         echo      Created .env file from template.
         echo      %ESC%[33mPlease edit .env and add your Gemini API key.%ESC%[0m
     ) else (
-        echo GEMINI_API_KEY=your_key_here> .env
+        echo GEMINI_API_KEY=your_gemini_api_key_here> .env
         echo      Created .env file. Please add your Gemini API key.
     )
 ) else (
@@ -118,11 +127,20 @@ echo %ESC%[32m[OK]%ESC%[0m Project setup complete.
 echo.
 
 echo %ESC%[32m============================================%ESC%[0m
-echo %ESC%[32m   Installation Complete!%ESC%[0m
+echo %ESC%[32m   Installation Complete! %ESC%[0m
 echo %ESC%[32m============================================%ESC%[0m
 echo.
-echo   Next steps:
-echo     1. Edit .env and add your GEMINI_API_KEY
-echo     2. Run start.bat to launch the application
+echo   %ESC%[36mNext Steps:%ESC%[0m
 echo.
+echo     1. Edit .env and add your GEMINI_API_KEY
+echo        Get it from: https://aistudio.google.com/apikey
+echo.
+echo     2. Run %ESC%[33mstart.bat%ESC%[0m to launch the application
+echo.
+echo     3. Open http://localhost:8000 in your browser
+echo.
+echo   %ESC%[36mOnline Demo:%ESC%[0m
+echo     https://jitujjitendra.github.io/Video-Automation/
+echo.
+echo %ESC%[32m============================================%ESC%[0m
 pause

@@ -19,6 +19,7 @@ class App {
     _init() {
         // Load saved state
         this._loadState();
+        this._loadSavedSettings();
 
         // Setup event listeners
         this._setupNavigation();
@@ -26,6 +27,8 @@ class App {
         this._setupDashboard();
         this._setupProgress();
         this._setupSettings();
+        this._setupQuickTips();
+        this._setupKeyboardShortcuts();
 
         // Determine initial page
         if (this.apiKey) {
@@ -36,7 +39,6 @@ class App {
 
         // Check backend status
         this._checkBackendStatus();
-        // Re-check every 30 seconds
         setInterval(() => this._checkBackendStatus(), 30000);
     }
 
@@ -54,6 +56,49 @@ class App {
             }
         } catch (error) {
             console.error('Failed to load state:', error);
+        }
+    }
+
+    /**
+     * Load saved form settings from localStorage.
+     */
+    _loadSavedSettings() {
+        try {
+            const savedLang = localStorage.getItem('pref_language');
+            const savedStyle = localStorage.getItem('pref_style');
+            const savedMusic = localStorage.getItem('pref_music_type');
+
+            if (savedLang) {
+                const langEl = document.getElementById('language-select');
+                if (langEl) langEl.value = savedLang;
+            }
+            if (savedStyle) {
+                const styleEl = document.getElementById('style-select');
+                if (styleEl) styleEl.value = savedStyle;
+            }
+            if (savedMusic) {
+                const musicEl = document.getElementById('music-type-select');
+                if (musicEl) musicEl.value = savedMusic;
+            }
+        } catch (error) {
+            console.error('Failed to load saved settings:', error);
+        }
+    }
+
+    /**
+     * Save current form preferences to localStorage.
+     */
+    _savePreferences() {
+        try {
+            const lang = document.getElementById('language-select');
+            const style = document.getElementById('style-select');
+            const music = document.getElementById('music-type-select');
+
+            if (lang) localStorage.setItem('pref_language', lang.value);
+            if (style) localStorage.setItem('pref_style', style.value);
+            if (music) localStorage.setItem('pref_music_type', music.value);
+        } catch (error) {
+            console.error('Failed to save preferences:', error);
         }
     }
 
@@ -114,7 +159,10 @@ class App {
             this._renderGallery();
         }
         if (pageName === 'settings') {
-            this._loadSettings();
+            this._loadSettingsPage();
+        }
+        if (pageName === 'dashboard') {
+            this._loadSavedSettings();
         }
     }
 
@@ -182,7 +230,6 @@ class App {
                     this.apiKey = key;
                     this._saveState();
 
-                    // Navigate to dashboard after a brief delay
                     setTimeout(() => {
                         this.navigateTo('dashboard');
                     }, 1000);
@@ -190,8 +237,6 @@ class App {
                     this._showStatus(statusEl, result.message, 'error');
                 }
             } catch (error) {
-                // If backend is not available, save key locally and proceed
-                // (allows UI testing without backend)
                 this._showStatus(
                     statusEl,
                     'Could not reach backend server. Key saved locally - you can test the UI.',
@@ -213,6 +258,53 @@ class App {
         keyInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 startBtn.click();
+            }
+        });
+    }
+
+    // === Quick Tips ===
+
+    /**
+     * Setup quick tips toggle functionality.
+     */
+    _setupQuickTips() {
+        const toggle = document.getElementById('quick-tips-toggle');
+        const body = document.getElementById('quick-tips-body');
+        const arrow = document.getElementById('quick-tips-arrow');
+
+        if (!toggle || !body || !arrow) return;
+
+        toggle.addEventListener('click', () => {
+            body.classList.toggle('open');
+            arrow.classList.toggle('open');
+        });
+    }
+
+    // === Keyboard Shortcuts ===
+
+    /**
+     * Setup global keyboard shortcuts.
+     */
+    _setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Escape to go back
+            if (e.key === 'Escape') {
+                if (this.currentPage === 'progress') {
+                    const actionsEl = document.getElementById('progress-actions');
+                    if (actionsEl && !actionsEl.classList.contains('hidden')) {
+                        this.navigateTo('dashboard');
+                    }
+                } else if (this.currentPage === 'gallery' || this.currentPage === 'settings') {
+                    this.navigateTo('dashboard');
+                }
+            }
+
+            // Enter to submit on dashboard (only if textarea is not focused)
+            if (e.key === 'Enter' && e.ctrlKey && this.currentPage === 'dashboard') {
+                const generateBtn = document.getElementById('btn-generate');
+                if (generateBtn && !generateBtn.disabled) {
+                    generateBtn.click();
+                }
             }
         });
     }
@@ -242,12 +334,12 @@ class App {
 
             // Validation
             if (!idea) {
-                alert('Please enter your video idea or concept.');
+                this._showUserError('Please enter your video idea or concept.');
                 return;
             }
 
             if (idea.length < 10) {
-                alert('Please provide a more detailed idea (at least 10 characters).');
+                this._showUserError('Please provide a more detailed idea (at least 10 characters).');
                 return;
             }
 
@@ -255,6 +347,12 @@ class App {
                 this.navigateTo('setup');
                 return;
             }
+
+            // Save preferences
+            this._savePreferences();
+
+            // Update estimated time
+            this._updateEstimatedTime(videoStyle, lipsync);
 
             // Start generation
             generateBtn.disabled = true;
@@ -286,6 +384,64 @@ class App {
                 generateBtn.innerHTML = 'Generate Video 🎬';
             }
         });
+    }
+
+    /**
+     * Calculate and update estimated time based on settings.
+     */
+    _updateEstimatedTime(style, lipsync) {
+        let minutes = 3;
+        if (style === 'realistic') minutes += 2;
+        if (style === 'animated') minutes += 1;
+        if (lipsync) minutes += 3;
+
+        const timeText = document.getElementById('estimated-time-text');
+        if (timeText) {
+            timeText.textContent = `Estimated: ~${minutes}-${minutes + 2} min`;
+        }
+    }
+
+    /**
+     * Show user-friendly error message.
+     */
+    _showUserError(message) {
+        // Create a temporary toast-style notification
+        const existing = document.querySelector('.user-error-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'user-error-toast';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: toastIn 0.3s ease;
+        `;
+        toast.textContent = message;
+
+        // Add animation keyframe if not exists
+        if (!document.getElementById('toast-style')) {
+            const style = document.createElement('style');
+            style.id = 'toast-style';
+            style.textContent = `
+                @keyframes toastIn {
+                    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
 
     // === Progress Page ===
@@ -366,13 +522,11 @@ class App {
                 (data) => this._handleProgressUpdate(data),
                 (data) => {
                     this._handleCompletion(data);
-                    // Show demo mode message
                     const subtitle = document.getElementById('progress-subtitle');
                     subtitle.textContent = 'Demo mode complete! Install locally for full functionality.';
                 }
             );
         } else {
-            // Fallback if demo.js is not loaded
             document.getElementById('progress-subtitle').textContent =
                 'Demo mode - backend not available. Install locally for full functionality.';
             document.getElementById('progress-actions').classList.remove('hidden');
@@ -389,6 +543,7 @@ class App {
 
         // Update step appearance
         stepEl.classList.add('active');
+        stepEl.classList.remove('skeleton');
 
         // Update progress bar
         const progressFill = stepEl.querySelector('.step-progress-fill');
@@ -446,6 +601,10 @@ class App {
         // Update subtitle
         document.getElementById('progress-subtitle').textContent = 'Generation complete!';
 
+        // Hide estimated time
+        const estTime = document.getElementById('estimated-time');
+        if (estTime) estTime.style.display = 'none';
+
         // Show actions
         document.getElementById('progress-actions').classList.remove('hidden');
 
@@ -463,9 +622,13 @@ class App {
     _handleError(data) {
         clearInterval(this._pollInterval);
 
-        document.getElementById('progress-subtitle').textContent =
-            `Error: ${data.error || 'Something went wrong'}`;
+        const errorMsg = data.error || 'Something went wrong';
+        document.getElementById('progress-subtitle').textContent = `Error: ${errorMsg}`;
         document.getElementById('progress-actions').classList.remove('hidden');
+
+        // Hide estimated time
+        const estTime = document.getElementById('estimated-time');
+        if (estTime) estTime.style.display = 'none';
     }
 
     /**
@@ -614,6 +777,7 @@ class App {
     _resetProgressUI() {
         document.querySelectorAll('.step').forEach(step => {
             step.classList.remove('active', 'completed', 'coming-soon');
+            step.classList.add('skeleton');
             const fill = step.querySelector('.step-progress-fill');
             if (fill) fill.style.width = '0%';
             const msg = step.querySelector('.step-message');
@@ -626,6 +790,10 @@ class App {
             'Please wait while AI works its magic...';
         document.getElementById('progress-actions').classList.add('hidden');
         document.getElementById('script-output').classList.add('hidden');
+
+        // Show estimated time
+        const estTime = document.getElementById('estimated-time');
+        if (estTime) estTime.style.display = 'inline-flex';
     }
 
     /**
@@ -636,11 +804,12 @@ class App {
         const entry = {
             taskId: data.task_id || this.currentTaskId,
             title: data.steps?.script_generation?.screenplay?.title || 'Untitled',
-            idea: data.idea || '',
+            idea: data.idea || document.getElementById('idea-input')?.value || '',
             language: data.language || 'English',
             contentType: data.music_type || 'song',
             timestamp: new Date().toISOString(),
             status: data.status || 'completed',
+            script: data.steps?.script_generation?.screenplay || null,
         };
 
         this.generationHistory.unshift(entry);
@@ -675,22 +844,42 @@ class App {
             return;
         }
 
-        grid.innerHTML = this.generationHistory.map(entry => `
-            <div class="gallery-item">
-                <div class="gallery-item-preview">🎬</div>
-                <div class="gallery-item-info">
-                    <div class="gallery-item-title">${this._escapeHtml(entry.title)}</div>
-                    <div class="gallery-item-meta">
-                        ${entry.language} | ${entry.contentType} | ${this._formatDate(entry.timestamp)}
+        grid.innerHTML = this.generationHistory.map((entry, index) => {
+            const hasScript = entry.script && entry.script.scenes && entry.script.scenes.length > 0;
+            const scriptPreview = hasScript
+                ? entry.script.scenes.map(s => `Scene ${s.scene_number}: ${s.description || ''}`).join('<br>')
+                : '';
+
+            return `
+                <div class="gallery-item">
+                    <div class="gallery-item-preview">🎬</div>
+                    <div class="gallery-item-info">
+                        <div class="gallery-item-title">${this._escapeHtml(entry.title)}</div>
+                        <div class="gallery-item-meta">
+                            ${entry.language} | ${entry.contentType} | ${this._formatDate(entry.timestamp)}
+                        </div>
+                        <div class="gallery-item-actions">
+                            <button class="btn-secondary" onclick="window.open('${api.getDownloadUrl(entry.taskId)}', '_blank')">
+                                Download 📥
+                            </button>
+                            ${hasScript ? `<button class="btn-expand-script" onclick="window.app._toggleGalleryScript(${index})">Show Script</button>` : ''}
+                        </div>
                     </div>
-                    <div class="gallery-item-actions">
-                        <button class="btn-secondary" onclick="window.open('${api.getDownloadUrl(entry.taskId)}', '_blank')">
-                            Download 📥
-                        </button>
-                    </div>
+                    ${hasScript ? `<div class="gallery-item-script" id="gallery-script-${index}"><p>${scriptPreview}</p></div>` : ''}
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+
+    /**
+     * Toggle script expansion in gallery item.
+     * @param {number} index - Gallery item index.
+     */
+    _toggleGalleryScript(index) {
+        const scriptEl = document.getElementById(`gallery-script-${index}`);
+        if (scriptEl) {
+            scriptEl.classList.toggle('expanded');
+        }
     }
 
     // === Settings ===
@@ -739,7 +928,6 @@ class App {
                     this._showStatus(statusEl, result.message, 'error');
                 }
             } catch {
-                // Save anyway if backend is unreachable
                 this.apiKey = key;
                 this._saveState();
                 this._showStatus(statusEl, 'Key saved locally (backend unreachable).', 'info');
@@ -763,7 +951,7 @@ class App {
     /**
      * Load current settings into the settings form.
      */
-    _loadSettings() {
+    _loadSettingsPage() {
         const keyInput = document.getElementById('settings-api-key');
         if (this.apiKey) {
             keyInput.value = this.apiKey;
@@ -789,7 +977,6 @@ class App {
                 throw new Error('not reachable');
             }
         } catch {
-            // Check if we are on GitHub Pages
             const isGitHubPages = window.location.hostname.includes('github.io') ||
                                   (window.location.hostname !== 'localhost' &&
                                    window.location.hostname !== '127.0.0.1');
@@ -805,9 +992,6 @@ class App {
 
     /**
      * Show a status message.
-     * @param {HTMLElement} el - Status element.
-     * @param {string} message - Message text.
-     * @param {string} type - Message type (success, error, info).
      */
     _showStatus(el, message, type) {
         el.textContent = message;
@@ -817,8 +1001,6 @@ class App {
 
     /**
      * Escape HTML to prevent XSS.
-     * @param {string} text - Text to escape.
-     * @returns {string} Escaped text.
      */
     _escapeHtml(text) {
         const div = document.createElement('div');
@@ -828,8 +1010,6 @@ class App {
 
     /**
      * Format a date string.
-     * @param {string} isoString - ISO date string.
-     * @returns {string} Formatted date.
      */
     _formatDate(isoString) {
         try {
