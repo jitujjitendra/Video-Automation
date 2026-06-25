@@ -1,0 +1,25 @@
+{
+  "title": "Song Title",
+  "language": "Hindi/English/Hinglish",
+  "genre": "Pop/Rock/Classical/etc",
+  "mood": "Happy/Sad/Energetic/etc",
+  "total_duration_seconds": 180,
+  "scenes": [
+    {
+      "scene_number": 1,
+      "description": "What happens in this scene - narrative description",
+      "visual_prompt": "Detailed visual description for video/image generation. Include setting, characters, colors, lighting, camera angle.",
+      "audio_direction": "Mood and music notes for this section (e.g., 'Soft piano intro, building anticipation')",
+      "duration_seconds": 15,
+      "lyrics": "The actual song lyrics for this scene",
+      "scene_type": "intro/verse/chorus/bridge/outro"
+    }
+  ],
+  "metadata": {
+    "total_scenes": 12,
+    "bpm": 120,
+    "key": "C major",
+    "instruments": ["piano", "guitar", "drums"],
+    "vocal_style": "Soft and melodic"
+  }
+}
