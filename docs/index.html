@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Automation Agent</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <span class="logo">🎬</span>
+                <span class="brand-name">AI Video Agent</span>
+            </div>
+            <div class="nav-links">
+                <a href="#" data-page="dashboard" class="nav-link">Dashboard</a>
+                <a href="#" data-page="gallery" class="nav-link">Gallery</a>
+                <a href="#" data-page="settings" class="nav-link">Settings</a>
+            </div>
+        </nav>
+
+        <!-- Page: API Key Setup -->
+        <div id="page-setup" class="page active">
+            <div class="setup-container">
+                <div class="setup-card">
+                    <div class="setup-header">
+                        <h1>Welcome to AI Video Agent</h1>
+                        <p class="subtitle">Transform your ideas into stunning videos with AI</p>
+                    </div>
+                    <div class="setup-body">
+                        <div class="api-key-section">
+                            <label for="api-key-input">Enter your Google Gemini API Key</label>
+                            <p class="helper-text">
+                                Get your free API key from 
+                                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+                            </p>
+                            <div class="input-group">
+                                <input 
+                                    type="password" 
+                                    id="api-key-input" 
+                                    placeholder="AIza..."
+                                    autocomplete="off"
+                                >
+                                <button id="toggle-key-visibility" class="btn-icon" title="Show/Hide Key">
+                                    👁️
+                                </button>
+                            </div>
+                            <div id="key-status" class="status-message hidden"></div>
+                        </div>
+                        <button id="btn-start-engine" class="btn-primary btn-large">
+                            Start Engine 🚀
+                        </button>
+                    </div>
+                    <div class="setup-footer">
+                        <p>Your API key is stored locally and never sent to our servers.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Dashboard -->
+        <div id="page-dashboard" class="page">
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h1>Create Your Video</h1>
+                    <p class="subtitle">Describe your idea and let AI bring it to life</p>
+                </div>
+
+                <div class="creation-form">
+                    <div class="form-group">
+                        <label for="idea-input">Your Idea / Concept</label>
+                        <textarea 
+                            id="idea-input" 
+                            placeholder="Describe your video idea... e.g., 'A romantic Hindi song about monsoon rain in Mumbai, showing a couple meeting at Marine Drive'"
+                            rows="4"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="language-select">Language</label>
+                            <select id="language-select">
+                                <option value="Hindi">Hindi</option>
+                                <option value="English" selected>English</option>
+                                <option value="Hinglish">Hinglish</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="music-type-select">Music Type</label>
+                            <select id="music-type-select">
+                                <option value="song">AI Generated Song</option>
+                                <option value="voiceover">Background Music + Voiceover</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="style-select">Video Style</label>
+                            <select id="style-select">
+                                <option value="realistic">Realistic</option>
+                                <option value="animated">Animated / Cartoon</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="lipsync-toggle">Lip Sync</label>
+                            <div class="toggle-container">
+                                <label class="toggle">
+                                    <input type="checkbox" id="lipsync-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label" id="lipsync-label">Off</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btn-generate" class="btn-primary btn-large">
+                        Generate Video 🎬
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Progress -->
+        <div id="page-progress" class="page">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <h1>Generating Your Video</h1>
+                    <p class="subtitle" id="progress-subtitle">Please wait while AI works its magic...</p>
+                </div>
+
+                <div class="pipeline-steps">
+                    <div class="step" id="step-script_generation">
+                        <div class="step-icon">📝</div>
+                        <div class="step-info">
+                            <div class="step-name">Script Generation</div>
+                            <div class="step-description">Writing lyrics/story and creating screenplay</div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="step-message"></div>
+                        </div>
+                        <div class="step-status">⏳</div>
+                    </div>
+
+                    <div class="step" id="step-visual_generation">
+                        <div class="step-icon">🎨</div>
+                        <div class="step-info">
+                            <div class="step-name">Visual Generation</div>
+                            <div class="step-description">Creating images and video clips for each scene</div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="step-message"></div>
+                        </div>
+                        <div class="step-status">⏳</div>
+                    </div>
+
+                    <div class="step" id="step-audio_generation">
+                        <div class="step-icon">🎵</div>
+                        <div class="step-info">
+                            <div class="step-name">Audio Generation</div>
+                            <div class="step-description">Generating music and voiceover</div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="step-message"></div>
+                        </div>
+                        <div class="step-status">⏳</div>
+                    </div>
+
+                    <div class="step" id="step-lipsync">
+                        <div class="step-icon">👄</div>
+                        <div class="step-info">
+                            <div class="step-name">Lip Sync</div>
+                            <div class="step-description">Synchronizing mouth movements with audio</div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="step-message"></div>
+                        </div>
+                        <div class="step-status">⏳</div>
+                    </div>
+
+                    <div class="step" id="step-editing">
+                        <div class="step-icon">✂️</div>
+                        <div class="step-info">
+                            <div class="step-name">Final Editing</div>
+                            <div class="step-description">Assembling and exporting final video</div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="step-message"></div>
+                        </div>
+                        <div class="step-status">⏳</div>
+                    </div>
+                </div>
+
+                <!-- Script Output Preview -->
+                <div id="script-output" class="script-output hidden">
+                    <h2>Generated Script</h2>
+                    <div id="script-content" class="script-content"></div>
+                </div>
+
+                <div class="progress-actions hidden" id="progress-actions">
+                    <button id="btn-back-dashboard" class="btn-secondary">Create Another</button>
+                    <button id="btn-download-result" class="btn-primary">Download Result 📥</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Gallery -->
+        <div id="page-gallery" class="page">
+            <div class="gallery-container">
+                <div class="gallery-header">
+                    <h1>Your Videos</h1>
+                    <p class="subtitle">All your generated videos in one place</p>
+                </div>
+                <div id="gallery-grid" class="gallery-grid">
+                    <div class="gallery-empty">
+                        <span class="empty-icon">🎬</span>
+                        <p>No videos generated yet.</p>
+                        <p>Go to Dashboard to create your first video!</p>
+                        <button class="btn-primary" onclick="window.app.navigateTo('dashboard')">
+                            Create Video
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Settings -->
+        <div id="page-settings" class="page">
+            <div class="settings-container">
+                <div class="settings-header">
+                    <h1>Settings</h1>
+                    <p class="subtitle">Manage your preferences and API configuration</p>
+                </div>
+
+                <div class="settings-card">
+                    <h2>API Configuration</h2>
+                    <div class="form-group">
+                        <label for="settings-api-key">Gemini API Key</label>
+                        <div class="input-group">
+                            <input 
+                                type="password" 
+                                id="settings-api-key" 
+                                placeholder="AIza..."
+                                autocomplete="off"
+                            >
+                            <button id="settings-toggle-key" class="btn-icon" title="Show/Hide">👁️</button>
+                        </div>
+                    </div>
+                    <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+                    <div id="settings-status" class="status-message hidden"></div>
+                </div>
+
+                <div class="settings-card">
+                    <h2>About</h2>
+                    <div class="about-info">
+                        <p><strong>AI Video Automation Agent</strong> v1.0.0</p>
+                        <p>Powered by Google Gemini Pro, Veo 3.1, Edge TTS, and FFmpeg</p>
+                        <p>Built for automated video creation from simple ideas.</p>
+                    </div>
+                </div>
+
+                <div class="settings-card danger-zone">
+                    <h2>Danger Zone</h2>
+                    <button id="btn-clear-data" class="btn-danger">Clear All Data</button>
+                    <p class="helper-text">This will remove your API key and all local settings.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
