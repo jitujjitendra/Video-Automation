@@ -5,9 +5,9 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -31,11 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount frontend static files
-frontend_path = Path(__file__).parent.parent / "frontend"
-if frontend_path.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_path), html=True), name="static")
 
 # Global state
 active_tasks: dict[str, dict] = {}
@@ -77,12 +72,31 @@ class TaskStatusResponse(BaseModel):
     error: Optional[str] = None
 
 
+class HealthResponse(BaseModel):
+    status: str
+    version: str
+    active_tasks: int
+
+
 # --- API Endpoints ---
+
+
+@app.get("/api/health", response_model=HealthResponse)
+async def health_check():
+    """Health check endpoint."""
+    return HealthResponse(
+        status="healthy",
+        version="1.0.0",
+        active_tasks=len(active_tasks),
+    )
 
 
 @app.get("/")
 async def root():
-    """Root endpoint - redirect info."""
+    """Root endpoint - serve frontend or redirect info."""
+    frontend_index = Path(__file__).parent.parent / "frontend" / "index.html"
+    if frontend_index.exists():
+        return FileResponse(str(frontend_index))
     return {
         "name": "AI Video Automation Agent",
         "version": "1.0.0",
@@ -182,18 +196,53 @@ async def get_status(task_id: str):
 
 
 @app.get("/api/download/{task_id}")
-async def download_video(task_id: str):
-    """Download the generated video for a task.
+async def download_video(task_id: str, type: Optional[str] = Query(None)):
+    """Download generated assets for a task.
 
-    Currently returns the script/screenplay JSON as video generation
-    is not yet implemented.
+    Query param 'type' can be: video, audio, notebook, all.
+    Defaults to the pipeline result JSON.
     """
     file_manager = FileManager()
     if not file_manager.task_exists(task_id):
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # For now, return the screenplay JSON (video not yet generated)
-    result_path = file_manager.get_task_dir(task_id) / "pipeline_result.json"
+    task_dir = file_manager.get_task_dir(task_id)
+
+    if type == "video":
+        video_path = task_dir / "final_video.mp4"
+        if video_path.exists():
+            return FileResponse(
+                path=str(video_path),
+                filename=f"video_{task_id}.mp4",
+                media_type="video/mp4",
+            )
+        raise HTTPException(status_code=404, detail="Video not available for this task")
+
+    elif type == "audio":
+        # Return first available audio file or zip
+        audio_dir = task_dir / "audio"
+        if audio_dir.exists():
+            audio_files = list(audio_dir.glob("*.mp3"))
+            if audio_files:
+                return FileResponse(
+                    path=str(audio_files[0]),
+                    filename=audio_files[0].name,
+                    media_type="audio/mpeg",
+                )
+        raise HTTPException(status_code=404, detail="Audio not available for this task")
+
+    elif type == "notebook":
+        notebook_path = task_dir / "lipsync_notebook.ipynb"
+        if notebook_path.exists():
+            return FileResponse(
+                path=str(notebook_path),
+                filename=f"lipsync_{task_id}.ipynb",
+                media_type="application/json",
+            )
+        raise HTTPException(status_code=404, detail="Notebook not available for this task")
+
+    # Default: return pipeline result JSON
+    result_path = task_dir / "pipeline_result.json"
     if result_path.exists():
         return FileResponse(
             path=str(result_path),
@@ -202,6 +251,99 @@ async def download_video(task_id: str):
         )
 
     raise HTTPException(status_code=404, detail="No output available for this task")
+
+
+@app.get("/api/audio/{task_id}/{filename}")
+async def stream_audio(task_id: str, filename: str):
+    """Stream an audio file for playback."""
+    file_manager = FileManager()
+    if not file_manager.task_exists(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    audio_path = file_manager.get_task_dir(task_id) / "audio" / filename
+    if not audio_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    # Prevent path traversal
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    return FileResponse(
+        path=str(audio_path),
+        media_type="audio/mpeg",
+        filename=filename,
+    )
+
+
+@app.get("/api/video/{task_id}")
+async def stream_video(task_id: str):
+    """Stream the final video for a task."""
+    file_manager = FileManager()
+    if not file_manager.task_exists(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    video_path = file_manager.get_task_dir(task_id) / "final_video.mp4"
+    if not video_path.exists():
+        raise HTTPException(status_code=404, detail="Video not available for this task")
+
+    return FileResponse(
+        path=str(video_path),
+        media_type="video/mp4",
+        filename=f"video_{task_id}.mp4",
+    )
+
+
+@app.get("/api/notebook/{task_id}")
+async def download_notebook(task_id: str):
+    """Download generated Colab notebook for a task."""
+    file_manager = FileManager()
+    if not file_manager.task_exists(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    notebook_path = file_manager.get_task_dir(task_id) / "lipsync_notebook.ipynb"
+    if not notebook_path.exists():
+        raise HTTPException(status_code=404, detail="Notebook not available for this task")
+
+    return FileResponse(
+        path=str(notebook_path),
+        filename=f"lipsync_processing_{task_id}.ipynb",
+        media_type="application/json",
+    )
+
+
+@app.get("/api/assets/{task_id}")
+async def get_assets(task_id: str):
+    """Get list of all generated assets for a task."""
+    file_manager = FileManager()
+    if not file_manager.task_exists(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_dir = file_manager.get_task_dir(task_id)
+    assets = []
+
+    # Check for various asset types
+    result_path = task_dir / "pipeline_result.json"
+    if result_path.exists():
+        assets.append({"type": "result", "filename": "pipeline_result.json", "path": f"/api/download/{task_id}"})
+
+    video_path = task_dir / "final_video.mp4"
+    if video_path.exists():
+        assets.append({"type": "video", "filename": "final_video.mp4", "path": f"/api/video/{task_id}"})
+
+    notebook_path = task_dir / "lipsync_notebook.ipynb"
+    if notebook_path.exists():
+        assets.append({"type": "notebook", "filename": "lipsync_notebook.ipynb", "path": f"/api/notebook/{task_id}"})
+
+    audio_dir = task_dir / "audio"
+    if audio_dir.exists():
+        for audio_file in sorted(audio_dir.glob("*.mp3")):
+            assets.append({
+                "type": "audio",
+                "filename": audio_file.name,
+                "path": f"/api/audio/{task_id}/{audio_file.name}",
+            })
+
+    return {"task_id": task_id, "assets": assets, "total": len(assets)}
 
 
 # --- WebSocket Endpoint ---
@@ -338,3 +480,10 @@ async def _run_generation(task_id: str, request: GenerateRequest) -> None:
                     await ws.send_json(message)
                 except Exception:
                     pass
+
+
+# --- Static Files (mounted last to avoid route conflicts) ---
+
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_path), html=True), name="static")

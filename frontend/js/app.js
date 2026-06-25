@@ -33,6 +33,11 @@ class App {
         } else {
             this.navigateTo('setup');
         }
+
+        // Check backend status
+        this._checkBackendStatus();
+        // Re-check every 30 seconds
+        setInterval(() => this._checkBackendStatus(), 30000);
     }
 
     // === State Management ===
@@ -272,7 +277,10 @@ class App {
                 this._startProgressTracking(result.task_id);
 
             } catch (error) {
-                alert(`Failed to start generation: ${error.message}`);
+                // Backend not available - switch to demo mode
+                console.log('Backend unavailable, switching to demo mode.');
+                this.navigateTo('progress');
+                this._runDemoMode({ idea, language, musicType, videoStyle, lipsync });
             } finally {
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = 'Generate Video 🎬';
@@ -343,6 +351,32 @@ class App {
                 // Ignore polling errors (WebSocket may be handling it)
             }
         }, 5000);
+    }
+
+    /**
+     * Run demo mode when backend is unavailable.
+     * @param {object} settings - Generation settings from the form.
+     */
+    _runDemoMode(settings) {
+        this._resetProgressUI();
+
+        if (typeof DemoMode !== 'undefined') {
+            DemoMode.runDemoMode(
+                settings,
+                (data) => this._handleProgressUpdate(data),
+                (data) => {
+                    this._handleCompletion(data);
+                    // Show demo mode message
+                    const subtitle = document.getElementById('progress-subtitle');
+                    subtitle.textContent = 'Demo mode complete! Install locally for full functionality.';
+                }
+            );
+        } else {
+            // Fallback if demo.js is not loaded
+            document.getElementById('progress-subtitle').textContent =
+                'Demo mode - backend not available. Install locally for full functionality.';
+            document.getElementById('progress-actions').classList.remove('hidden');
+        }
     }
 
     /**
@@ -737,6 +771,37 @@ class App {
     }
 
     // === Utilities ===
+
+    /**
+     * Check backend connectivity and update status indicator.
+     */
+    async _checkBackendStatus() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        if (!dot || !text) return;
+
+        try {
+            const connected = await api.checkConnection();
+            if (connected) {
+                dot.className = 'status-dot connected';
+                text.textContent = 'Connected';
+            } else {
+                throw new Error('not reachable');
+            }
+        } catch {
+            // Check if we are on GitHub Pages
+            const isGitHubPages = window.location.hostname.includes('github.io') ||
+                                  (window.location.hostname !== 'localhost' &&
+                                   window.location.hostname !== '127.0.0.1');
+            if (isGitHubPages) {
+                dot.className = 'status-dot demo';
+                text.textContent = 'Demo Mode';
+            } else {
+                dot.className = 'status-dot offline';
+                text.textContent = 'Offline';
+            }
+        }
+    }
 
     /**
      * Show a status message.

@@ -166,7 +166,7 @@ class ApiClient {
      */
     async checkConnection() {
         try {
-            await this._request('/');
+            await this._request('/api/health');
             return true;
         } catch {
             return false;
