@@ -375,10 +375,10 @@ class App {
                 statusEl.textContent = '✅';
                 stepEl.classList.remove('active');
                 stepEl.classList.add('completed');
-            } else if (data.status === 'coming_soon') {
-                statusEl.textContent = '🔜';
+            } else if (data.status === 'partial') {
+                statusEl.textContent = '⚠️';
                 stepEl.classList.remove('active');
-                stepEl.classList.add('coming-soon');
+                stepEl.classList.add('completed');
             } else if (data.status === 'skipped') {
                 statusEl.textContent = '⏭️';
                 stepEl.classList.remove('active');
@@ -395,6 +395,10 @@ class App {
         if (data.message) {
             document.getElementById('progress-subtitle').textContent = data.message;
         }
+
+        // Store step results for later display
+        if (!this._stepResults) this._stepResults = {};
+        this._stepResults[data.step] = data;
     }
 
     /**
@@ -431,7 +435,7 @@ class App {
     }
 
     /**
-     * Display the generated script/screenplay output.
+     * Display the generated script/screenplay output and all pipeline results.
      * @param {object} data - Pipeline result data.
      */
     _displayScriptOutput(data) {
@@ -442,32 +446,127 @@ class App {
             return;
         }
 
-        const scriptStep = data.steps.script_generation;
-        if (!scriptStep || !scriptStep.screenplay) {
-            return;
-        }
-
-        const screenplay = scriptStep.screenplay;
         let html = '';
 
-        // Title
-        if (screenplay.title) {
-            html += `<h3 style="color: var(--accent-primary); margin-bottom: 1rem;">${screenplay.title}</h3>`;
+        // === Script Output Section ===
+        const scriptStep = data.steps.script_generation;
+        if (scriptStep && scriptStep.screenplay) {
+            const screenplay = scriptStep.screenplay;
+
+            html += '<details open><summary style="cursor:pointer;font-weight:bold;font-size:1.1rem;margin-bottom:0.5rem;">📝 Generated Script</summary>';
+
+            if (screenplay.title) {
+                html += `<h3 style="color: var(--accent-primary); margin-bottom: 1rem;">${screenplay.title}</h3>`;
+            }
+
+            const scenes = screenplay.scenes || [];
+            scenes.forEach(scene => {
+                html += `
+                    <div class="scene-card">
+                        <h4>Scene ${scene.scene_number}: ${scene.scene_type || ''}</h4>
+                        <p><strong>Description:</strong> ${scene.description || ''}</p>
+                        <p class="visual-prompt"><strong>Visual:</strong> ${scene.visual_prompt || ''}</p>
+                        ${scene.dialogue ? `<p><strong>Dialogue/Lyrics:</strong> ${scene.dialogue}</p>` : ''}
+                        <p><strong>Duration:</strong> ${scene.duration_seconds || 0}s</p>
+                    </div>
+                `;
+            });
+            html += '</details>';
         }
 
-        // Scenes
-        const scenes = screenplay.scenes || [];
-        scenes.forEach(scene => {
+        // === Visual Prompts Section ===
+        const visualStep = data.steps.visual_generation;
+        if (visualStep && visualStep.data && visualStep.data.visual_prompts) {
+            html += '<details><summary style="cursor:pointer;font-weight:bold;font-size:1.1rem;margin:1rem 0 0.5rem;">🎨 Visual Prompts (for AI Generation)</summary>';
+            html += '<p style="opacity:0.7;margin-bottom:0.5rem;">Copy these prompts to Veo 3.1 / Imagen in Google AI Pro</p>';
+
+            visualStep.data.visual_prompts.forEach(vp => {
+                html += `
+                    <div class="scene-card" style="border-left: 3px solid var(--accent-primary);">
+                        <h4>Scene ${vp.scene_number}</h4>
+                        <p><strong>Image Prompt:</strong> ${vp.image_prompt || ''}</p>
+                        <p><strong>Video Prompt:</strong> ${vp.video_prompt || ''}</p>
+                        <p style="opacity:0.7;"><strong>Camera:</strong> ${vp.camera_direction || ''} | <strong>Duration:</strong> ${vp.duration_seconds}s</p>
+                        <p style="color:#ff6b6b;font-size:0.85rem;"><strong>Avoid:</strong> ${vp.negative_prompt || ''}</p>
+                    </div>
+                `;
+            });
+            html += '</details>';
+        }
+
+        // === Audio Output Section ===
+        const audioStep = data.steps.audio_generation;
+        if (audioStep && audioStep.data) {
+            html += '<details><summary style="cursor:pointer;font-weight:bold;font-size:1.1rem;margin:1rem 0 0.5rem;">🎵 Audio Output</summary>';
+
+            const audioData = audioStep.data;
+            if (audioData.voiceover && audioData.voiceover.audio_files) {
+                const completedFiles = audioData.voiceover.audio_files.filter(f => f.status === 'completed');
+                html += `<p style="margin-bottom:0.5rem;">Generated ${completedFiles.length} audio files (voice: ${audioData.voiceover.voice_used || 'default'})</p>`;
+
+                completedFiles.forEach(af => {
+                    html += `
+                        <div class="scene-card" style="border-left: 3px solid #4CAF50;">
+                            <strong>Scene ${af.scene_number}</strong> - Duration: ${(af.duration_seconds || 0).toFixed(1)}s
+                            ${af.audio_path ? `<br><small style="opacity:0.7;">${af.audio_path}</small>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            if (audioData.suno_guide) {
+                html += `
+                    <div class="scene-card" style="border-left: 3px solid #FF9800;">
+                        <h4>Suno AI Guide</h4>
+                        <p><strong>Style:</strong> ${audioData.suno_guide.style_tags || ''}</p>
+                        <p><strong>BPM:</strong> ${audioData.suno_guide.estimated_bpm || 120}</p>
+                        <pre style="white-space:pre-wrap;max-height:200px;overflow-y:auto;background:rgba(0,0,0,0.2);padding:0.5rem;border-radius:4px;">${audioData.suno_guide.lyrics || ''}</pre>
+                    </div>
+                `;
+            }
+            html += '</details>';
+        }
+
+        // === Lip Sync Section ===
+        const lipsyncStep = data.steps.lipsync;
+        if (lipsyncStep && lipsyncStep.data && lipsyncStep.data.notebook) {
+            html += '<details><summary style="cursor:pointer;font-weight:bold;font-size:1.1rem;margin:1rem 0 0.5rem;">👄 Lip Sync (Colab Notebook)</summary>';
             html += `
-                <div class="scene-card">
-                    <h4>Scene ${scene.scene_number}: ${scene.scene_type || ''}</h4>
-                    <p><strong>Description:</strong> ${scene.description || ''}</p>
-                    <p class="visual-prompt"><strong>Visual:</strong> ${scene.visual_prompt || ''}</p>
-                    ${scene.dialogue ? `<p><strong>Dialogue/Lyrics:</strong> ${scene.dialogue}</p>` : ''}
-                    <p><strong>Duration:</strong> ${scene.duration_seconds || 0}s</p>
+                <div class="scene-card" style="border-left: 3px solid #9C27B0;">
+                    <p><strong>Status:</strong> Notebook generated</p>
+                    <p><strong>File:</strong> ${lipsyncStep.data.notebook.notebook_path || ''}</p>
+                    <p><strong>Instructions:</strong></p>
+                    <ol style="margin-left:1rem;">
+                        ${(lipsyncStep.data.notebook.instructions || []).map(i => `<li>${i}</li>`).join('')}
+                    </ol>
                 </div>
             `;
-        });
+            html += '</details>';
+        }
+
+        // === Editing/Output Section ===
+        const editStep = data.steps.editing;
+        if (editStep && editStep.data) {
+            html += '<details><summary style="cursor:pointer;font-weight:bold;font-size:1.1rem;margin:1rem 0 0.5rem;">🎬 Final Output</summary>';
+
+            if (editStep.data.output_path) {
+                html += `
+                    <div class="scene-card" style="border-left: 3px solid #2196F3;">
+                        <p><strong>Video assembled successfully!</strong></p>
+                        <p>Output: ${editStep.data.output_path}</p>
+                        <p>Steps completed: ${(editStep.data.steps_completed || []).join(', ')}</p>
+                    </div>
+                `;
+            } else if (editStep.data.assets_available) {
+                html += `
+                    <div class="scene-card" style="border-left: 3px solid #FF9800;">
+                        <p><strong>Partial assembly</strong> - assets generated but video could not be assembled</p>
+                        <p>${editStep.data.message || ''}</p>
+                    </div>
+                `;
+            }
+            html += '</details>';
+        }
 
         if (html) {
             contentEl.innerHTML = html;
