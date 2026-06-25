@@ -133,6 +133,34 @@ class ApiClient {
     }
 
     /**
+     * Get the download URL for a Colab notebook.
+     * @param {string} taskId - The task ID.
+     * @returns {string} Download URL for the notebook.
+     */
+    getNotebookDownloadUrl(taskId) {
+        return `${this.baseUrl}/api/download/${taskId}?type=notebook`;
+    }
+
+    /**
+     * Get audio file URL for playback.
+     * @param {string} taskId - The task ID.
+     * @param {number} sceneNumber - Scene number.
+     * @returns {string} Audio file URL.
+     */
+    getAudioUrl(taskId, sceneNumber) {
+        return `${this.baseUrl}/api/audio/${taskId}/scene_${String(sceneNumber).padStart(2, '0')}.mp3`;
+    }
+
+    /**
+     * Get the video preview URL for a task.
+     * @param {string} taskId - The task ID.
+     * @returns {string} Video URL.
+     */
+    getVideoUrl(taskId) {
+        return `${this.baseUrl}/api/video/${taskId}`;
+    }
+
+    /**
      * Check if the backend server is reachable.
      * @returns {Promise<boolean>}
      */
