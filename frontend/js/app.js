@@ -212,8 +212,8 @@ class App {
                 return;
             }
 
-            if (!key.startsWith('AIza')) {
-                this._showStatus(statusEl, 'Invalid key format. Gemini API keys start with "AIza".', 'error');
+            if (key.length < 20) {
+                this._showStatus(statusEl, 'Invalid key format. API key seems too short.', 'error');
                 return;
             }
 
